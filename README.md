@@ -4,7 +4,11 @@ A programmable control panel device, complete with buttons, toggles, lights and 
 
 The Ground Control device brings that satisfying physical feedback of pushing buttons on a lunar lander to your boring day-to-day tasks.
 
-You can use it as a control device for anything, either using the Go APIs or via the provided command-line client. Use-cases include anything from activating/deactivating your HUE lights to deploying a piece of software or booking Jira tickets!
+You can use it as a control device for anything, either using the Go APIs or via the provided command-line client. 
+
+Use-cases include anything from controlling your HUE lights, displaying a tweet, ordering Soylent on Amazon or even deploying software!
+
+
 
 
 ## Command Line usage
@@ -52,6 +56,22 @@ You can use it as a control device for anything, either using the Go APIs or via
 ```
 > ground_control -listen
 ```
+
+
+
+## Arduino Setup
+
+- Install [Firmata](http://gort.io/documentation/cli/arduino/) on the Duino:
+
+```
+> gort arduino upload firmata /dev/tty.usbmodem1411 -b uno
+```
+
+
+## References 
+https://gobot.io/documentation/platforms/arduino/
+
+
 
 
 # TODO

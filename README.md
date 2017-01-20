@@ -9,9 +9,19 @@ You can use it as a control device for anything, either using the Go APIs or via
 Use-cases include anything from controlling your HUE lights, displaying a tweet, ordering Soylent on Amazon or even deploying software!
 
 
+## Code usage
+
+See [control_test.go](control_test.go) for examples
 
 
 ## Command Line usage
+
+###  Connect to the device:
+
+`ground_control -port /dev/tty.usbmodem1411 &`
+
+In order to communicate to the device
+
 
 ### Get the current state of all controls
 ```
@@ -67,6 +77,10 @@ Use-cases include anything from controlling your HUE lights, displaying a tweet,
 > gort arduino upload firmata /dev/tty.usbmodem1411 -b uno
 ```
 
+## Device Wiring
+
+![frizling](v1.png)
+
 
 ## References 
 https://gobot.io/documentation/platforms/arduino/
@@ -77,5 +91,4 @@ https://gobot.io/documentation/platforms/arduino/
 # TODO
 
 - api
-- sketch/diagrams
 - arduino code

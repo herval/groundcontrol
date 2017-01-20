@@ -11,13 +11,14 @@ import (
 // Talk to the Arduino-based Ground Control device via USB
 // encapsulate a device connected to a /dev port
 type GroundControl struct {
-	Display       Display
-	Leds          []Led
-	Potentiometer Potentiometer
-	Buttons       []Button
-	Switches      []Button
-	Buzzer        Buzzer
+	Display       *Display
+	Leds          []*Led
+	Potentiometer *Potentiometer
+	Buttons       []*Button
+	Switches      []*Button
+	Buzzer        *Buzzer
 
+	initCallback func()
 	workLoop func()
 	adaptor  *firmata.Adaptor
 	robot    *gobot.Robot
@@ -28,7 +29,7 @@ func NewGroundControl(port string) *GroundControl {
 
 	firmataAdaptor := firmata.NewAdaptor(port)
 
-	control.Display = Display{
+	control.Display = &Display{
 		driver: i2c.NewGroveLcdDriver(firmataAdaptor),
 	}
 
@@ -36,10 +37,10 @@ func NewGroundControl(port string) *GroundControl {
 	control.Leds = setupLeds(firmataAdaptor)
 
 	// a potentiometer
-	control.Potentiometer = Potentiometer{adaptor: firmataAdaptor, pin:"0"}
+	control.Potentiometer = &Potentiometer{adaptor: firmataAdaptor, pin:"0"}
 
 	// a buzzer
-	control.Buzzer = Buzzer{
+	control.Buzzer = &Buzzer{
 		driver: gpio.NewBuzzerDriver(firmataAdaptor, "3"),
 	}
 
@@ -60,11 +61,11 @@ func NewGroundControl(port string) *GroundControl {
 	return &control
 }
 
-func setupButtons(firmataAdaptor *firmata.Adaptor) []Button {
+func setupButtons(firmataAdaptor *firmata.Adaptor) []*Button {
 	btnPorts := []string{"1", "2"}
-	buttons := make([]Button, len(btnPorts))
+	buttons := make([]*Button, len(btnPorts))
 	for i := range buttons {
-		buttons[i] = Button{
+		buttons[i] = &Button{
 			driver: gpio.NewButtonDriver(firmataAdaptor, btnPorts[i]),
 			port:   btnPorts[i],
 		}
@@ -72,11 +73,11 @@ func setupButtons(firmataAdaptor *firmata.Adaptor) []Button {
 	return buttons
 }
 
-func setupSwitches(firmataAdaptor *firmata.Adaptor) []Button {
-	switchPorts := []string{"7", "6", "5", "4"}
-	switches := make([]Button, len(switchPorts))
+func setupSwitches(firmataAdaptor *firmata.Adaptor) []*Button {
+	switchPorts := []string{"4", "5", "6", "7"}
+	switches := make([]*Button, len(switchPorts))
 	for i := range switches {
-		switches[i] = Button{
+		switches[i] = &Button{
 			driver: gpio.NewButtonDriver(firmataAdaptor, switchPorts[i]),
 			port:   switchPorts[i],
 		}
@@ -85,11 +86,11 @@ func setupSwitches(firmataAdaptor *firmata.Adaptor) []Button {
 	return switches
 }
 
-func setupLeds(firmataAdaptor *firmata.Adaptor) []Led {
+func setupLeds(firmataAdaptor *firmata.Adaptor) []*Led {
 	ledPorts := []string{"9", "10", "11" }
-	leds := make([]Led, len(ledPorts))
+	leds := make([]*Led, len(ledPorts))
 	for i := range leds {
-		leds[i] = Led{
+		leds[i] = &Led{
 			driver: gpio.NewLedDriver(firmataAdaptor, ledPorts[i]),
 		}
 	}
@@ -101,18 +102,48 @@ func (control *GroundControl) Loop(callback func()) {
 	control.workLoop = callback
 }
 
+func  (control *GroundControl) Init(callback func()) {
+	control.initCallback = callback
+}
+
 func (g *GroundControl) Connect() error {
 	g.robot.Work = func() {
+		initialized := false
 
 		// initialize everything
 		g.Display.Init()
 
 		// append callbacks, if any
+		if g.initCallback != nil {
+			g.initCallback()
+		}
+		initialized = true
+
+		//gobot.Every(1*time.Second, func() {
+		//	for _, led := range g.Leds {
+		//		if led.blinking {
+		//			led.Toggle()
+		//		}
+		//	}
+		//})
 
 		// poll for states of buttons and knobs and toggles
-		gobot.Every(10 * time.Millisecond, func() {
-			if g.workLoop != nil {
-				g.workLoop()
+		gobot.Every(10*time.Millisecond, func() {
+			if initialized {
+				for _, btn := range g.Buttons {
+					btn.Sync()
+				}
+				for _, btn := range g.Switches {
+					btn.Sync()
+				}
+				for _, led := range g.Leds {
+					led.Sync()
+				}
+				g.Potentiometer.Sync()
+
+				if g.workLoop != nil {
+					g.workLoop()
+				}
 			}
 		})
 

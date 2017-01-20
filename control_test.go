@@ -2,58 +2,68 @@ package groundcontrol
 
 import (
 	"testing"
-	"time"
 	"log"
 	"fmt"
+	"time"
 )
 
 func TestDevice(t *testing.T) {
 	control := NewGroundControl("/dev/tty.usbmodem1411")
 
-	err := control.Connect()
-	if err {
-		log.Fatal(err)
-	}
+	control.Init(func() {
+		control.Display.Write("hello\nworld")
 
-	control.Display.Write("hello", "world")
-
-	for _, led := range control.Leds {
-		led.On()
-		time.Sleep(1 * time.Second)
-		led.Off()
-	}
-
-	control.Buzzer.Play(100, 100)
-
-	for _, btn := range control.Switches {
-		fmt.Println(btn.Active())
-	}
-
-	// press button 2 to stop the loop
-	control.Buttons[1].Pushed(func() {
-		control.Disconnect()
-	})
-
-	control.Switches[0].Pushed(func() {
-		fmt.Println("Pushed the switch")
-	})
-
-	control.Switches[1].Released(func() {
-		fmt.Println("Released the switch")
-	})
-
-	control.Loop(func() {
-		level := control.Potentiometer.Level()
-		switch {
-		case level > 100:
-			control.Leds[0].On()
-		case level > 500:
-			control.Leds[1].On()
-		case level > 900:
-			control.Leds[1].On()
+		for _, led := range control.Leds {
+			led.On()
+			time.Sleep(1 * time.Second)
+			led.Off()
 		}
 
-		states := "Btns: "
+		//control.Buzzer.Play(100, 100)
+
+		for _, btn := range control.Switches {
+			fmt.Println(btn.Active())
+		}
+
+		// press button 2 to stop the loop
+		//control.Buttons[1].Pushed(func() {
+		//	control.Disconnect()
+		//})
+
+		//control.Switches[0].Pushed(func() {
+		//	fmt.Println("Pushed the switch")
+		//})
+		//
+		//control.Switches[1].Released(func() {
+		//	fmt.Println("Released the switch")
+		//})
+	})
+
+	//control.Changed(func(device interface{}) {
+	//
+	//})
+
+	control.Loop(func() {
+		for _, led := range control.Leds {
+			led.Off()
+		}
+
+		level := control.Potentiometer.Level()
+		switch {
+		case level > 900:
+			control.Leds[0].On()
+			control.Leds[1].On()
+			control.Leds[2].On()
+		case level > 600:
+			control.Leds[0].On()
+			control.Leds[1].On()
+		case level > 300:
+			control.Leds[0].On()
+		}
+
+		states := fmt.Sprintf("P %d ", level)
+
+		states += "B "
 		for _, btn := range control.Buttons {
 			var str string
 			if btn.Active() {
@@ -65,7 +75,7 @@ func TestDevice(t *testing.T) {
 		}
 		states += "\n"
 
-		states += "Switches: "
+		states += "S "
 		for _, btn := range control.Switches {
 			var str string
 			if btn.Active() {
@@ -75,8 +85,12 @@ func TestDevice(t *testing.T) {
 			}
 			states += str
 		}
-		states += "\n"
-
-		// TODO test buzzer
+		control.Display.Write(states)
+		//TODO test buzzer
 	})
+
+	err := control.Connect()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

@@ -13,59 +13,77 @@ import (
 	"errors"
 )
 
-func main() {
-	pipe := "groundcontrol.lock"
+var pipe = "groundcontrol.lock"
 
+func main() {
 	port := flag.String("port", "", "/dev/ port connected to your Ground Control device")
-	mode := flag.String("mode", "daemon", "Run the daemon or send commands to it (daemon | cmd)")
+	mode := flag.String("mode", "", "Run the daemon or send commands to it (daemon | cmd | listen)")
 	device := flag.String("device", "", "The output to send a command to (led <0-2> | display)")
 	state := flag.String("state", "", "The new state of the output (on/off for leds, text for display")
-	//poll := flag.String("poll", "", "poll for changes on state (any change will return a JSON response)")
 
 	flag.Parse()
 
-	// run as a PID
-	if *mode == "daemon" {
-		if *port == "" {
-			flag.Usage()
-			log.Fatal("Missing params")
-		}
+	switch *mode {
+	case "daemon":
+		daemon(port)
+	case "cmd":
+		cmd(device, state)
+	case "listen":
+		listen()
+	default:
+		flag.Usage()
+	}
+}
 
-		fmt.Println("Connecting to Ground Control on port", *port)
-		control := groundcontrol.NewGroundControl(*port)
-		//control.Connect()
+// listen for changes and outpt them
+func listen() {
+	fmt.Println("*** NOT YET ***")
+}
 
-		reader := setupPipe(pipe)
-		for {
-			device, err := reader.ReadBytes('\n')
-			state, err2 := reader.ReadBytes('\n')
-			if err != nil || err2 != nil {
-				fmt.Print("Couldn't load command: ", err.Error())
+// run as a PID
+func daemon(port *string) {
+	if *port == "" {
+		flag.Usage()
+		log.Fatal("Missing params")
+	}
+
+	fmt.Println("Connecting to Ground Control on port", *port)
+	control := groundcontrol.NewGroundControl(*port)
+	handle(
+		control.Connect(),
+	)
+
+	reader := setupPipe(pipe)
+	for {
+		device, err := reader.ReadBytes('\n')
+		state, err2 := reader.ReadBytes('\n')
+		if err != nil || err2 != nil {
+			fmt.Print("Couldn't load command: ", err.Error())
+		} else {
+			funct, err := parseCommand(string(device), string(state), control)
+			if err != nil {
+				fmt.Println("Couldn't parse command: ", err.Error())
 			} else {
-				funct, err := parseCommand(string(device), string(state), control)
-				if err != nil {
-					fmt.Println("Couldn't parse command: ", err.Error())
-				} else {
-					funct()
-				}
+				funct()
 			}
 		}
-
-	} else { // read commands sent to the PID and respond with JSON
-
-		if *device == "" || *state == "" {
-			log.Fatal("Missing params")
-		}
-
-		file, err := os.OpenFile(pipe, os.O_RDWR | os.O_APPEND, os.ModeNamedPipe)
-		handle(err)
-
-		file.WriteString(fmt.Sprintf(
-			"%s %s\n", *device, *state,
-		))
-
-		fmt.Println("Done!")
 	}
+}
+
+// read commands sent to the PID and respond with JSON
+func cmd(device *string, state *string) {
+	if *device == "" || *state == "" {
+		log.Fatal("Missing params")
+	}
+
+	file, err := os.OpenFile(pipe, os.O_RDWR|os.O_APPEND, os.ModeNamedPipe)
+	handle(err)
+
+	file.WriteString(fmt.Sprintf(
+		"%s %s\n", *device, *state,
+	))
+
+	fmt.Println("Done!")
 }
 
 func setupPipe(filename string) *bufio.Reader {
@@ -82,10 +100,9 @@ func setupPipe(filename string) *bufio.Reader {
 }
 
 func parseCommand(device string, state string, control *groundcontrol.GroundControl) (callback func(), err error) {
-
 	switch {
 	case strings.HasPrefix(device, "led"):
-		port := strings.Split(device, " ")[1]
+		port := intValue(strings.Split(device, " ")[1])
 		return func() {
 			if state == "on" {
 				control.Leds[port].On()

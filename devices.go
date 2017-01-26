@@ -6,6 +6,11 @@ import (
 	"gobot.io/x/gobot/platforms/firmata"
 )
 
+type Changeable interface {
+	Changed() bool
+	State() interface{}
+}
+
 type Rgba struct {
 	address string
 	color   string
@@ -36,6 +41,10 @@ type Led struct {
 	on     bool
 }
 
+func (l *Led) State() interface{} {
+	return l.on
+}
+
 func (l *Led) On() {
 	if !l.on {
 		l.driver.On()
@@ -51,12 +60,11 @@ func (l *Led) Off() {
 	}
 }
 
-func (l *Led) Sync() {
-	if l.driver.State() != l.on {
+func (l *Led) Changed() bool {
+	return wasModified(l, func() {
 		l.on = l.driver.State()
-	}
+	})
 }
-
 
 type Potentiometer struct {
 	pin     string
@@ -64,12 +72,16 @@ type Potentiometer struct {
 	adaptor *firmata.Adaptor
 }
 
-func (p *Potentiometer) Sync() {
-	level, _ := p.adaptor.AnalogRead(p.pin)
-	level = roundDown(level) // a bit less precision goes a long way
-	if level != p.level {
+func (p *Potentiometer) State() interface{} {
+	return p.level
+}
+
+func (p *Potentiometer) Changed() bool {
+	return wasModified(p, func() {
+		level, _ := p.adaptor.AnalogRead(p.pin)
+		level = roundDown(level) // a bit less precision goes a long way
 		p.level = level
-	}
+	})
 }
 
 func (p *Potentiometer) Level() int {
@@ -90,12 +102,20 @@ type Button struct {
 	active bool
 }
 
-func (b *Button) Active() bool {
-	return b.active //b.driver.Active
+func (b *Button) State() interface{} {
+	return b.active
 }
 
-func (b *Button) Sync() {
-	b.active = b.driver.Active
+func (b *Button) Changed() bool {
+	return wasModified(b, func() {
+		b.active = b.driver.Active
+	})
+}
+
+func wasModified(b Changeable, modification func()) bool {
+	prev := b.State()
+	modification()
+	return prev == b.State()
 }
 
 func (b *Button) Pushed(callback func()) {

@@ -18,10 +18,11 @@ type GroundControl struct {
 	Switches      []*Button
 	Buzzer        *Buzzer
 
-	initCallback func()
-	workLoop func()
-	adaptor  *firmata.Adaptor
-	robot    *gobot.Robot
+	initCallback    func()
+	workLoop        func()
+	changedCallback func(interface{})
+	adaptor         *firmata.Adaptor
+	robot           *gobot.Robot
 }
 
 func NewGroundControl(port string) *GroundControl {
@@ -102,7 +103,11 @@ func (control *GroundControl) Loop(callback func()) {
 	control.workLoop = callback
 }
 
-func  (control *GroundControl) Init(callback func()) {
+func (control *GroundControl) Changed(callback func(interface{})) {
+	control.changedCallback = callback
+}
+
+func (control *GroundControl) Init(callback func()) {
 	control.initCallback = callback
 }
 
@@ -131,15 +136,15 @@ func (g *GroundControl) Connect() error {
 		gobot.Every(10*time.Millisecond, func() {
 			if initialized {
 				for _, btn := range g.Buttons {
-					btn.Sync()
+					g.notifyChanged(btn)
 				}
 				for _, btn := range g.Switches {
-					btn.Sync()
+					g.notifyChanged(btn)
 				}
 				for _, led := range g.Leds {
-					led.Sync()
+					g.notifyChanged(led)
 				}
-				g.Potentiometer.Sync()
+				g.notifyChanged(g.Potentiometer)
 
 				if g.workLoop != nil {
 					g.workLoop()
@@ -149,6 +154,12 @@ func (g *GroundControl) Connect() error {
 
 	}
 	return g.robot.Start()
+}
+
+func (control *GroundControl) notifyChanged(c Changeable) {
+	if c.Changed() && control.changedCallback != nil {
+		control.changedCallback(c)
+	}
 }
 
 func (g *GroundControl) Disconnect() error {

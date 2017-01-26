@@ -19,29 +19,29 @@ func TestDevice(t *testing.T) {
 			led.Off()
 		}
 
-		//control.Buzzer.Play(100, 100)
+		control.Buzzer.Play(100, 100)
 
 		for _, btn := range control.Switches {
-			fmt.Println(btn.Active())
+			fmt.Println(btn.State())
 		}
-
-		// press button 2 to stop the loop
-		//control.Buttons[1].Pushed(func() {
-		//	control.Disconnect()
-		//})
-
-		//control.Switches[0].Pushed(func() {
-		//	fmt.Println("Pushed the switch")
-		//})
-		//
-		//control.Switches[1].Released(func() {
-		//	fmt.Println("Released the switch")
-		//})
 	})
 
-	//control.Changed(func(device interface{}) {
-	//
-	//})
+	control.Switches[0].Pushed(func() {
+		fmt.Println("Pushed the switch")
+	})
+
+	control.Switches[1].Released(func() {
+		fmt.Println("Released the switch")
+	})
+
+	// press button 2 to stop the loop
+	control.Buttons[1].Pushed(func() {
+		control.Disconnect()
+	})
+
+	control.Changed(func(device interface{}) {
+		fmt.Println(device)
+	})
 
 	control.Loop(func() {
 		for _, led := range control.Leds {
@@ -66,7 +66,7 @@ func TestDevice(t *testing.T) {
 		states += "B "
 		for _, btn := range control.Buttons {
 			var str string
-			if btn.Active() {
+			if btn.State() {
 				str = "1 "
 			} else {
 				str = "0 "
@@ -78,7 +78,7 @@ func TestDevice(t *testing.T) {
 		states += "S "
 		for _, btn := range control.Switches {
 			var str string
-			if btn.Active() {
+			if btn.State() {
 				str = "1 "
 			} else {
 				str = "0 "
@@ -86,11 +86,11 @@ func TestDevice(t *testing.T) {
 			states += str
 		}
 		control.Display.Write(states)
-		//TODO test buzzer
 	})
 
 	err := control.Connect()
 	if err != nil {
+		fmt.Println("Make sure the board is connected before running this!")
 		log.Fatal(err)
 	}
 }

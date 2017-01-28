@@ -19,8 +19,14 @@ func TestDevice(t *testing.T) {
 			led.Off()
 		}
 
-		control.Buzzer.Play(100, 100)
+		for i := 100; i <= 5000; i++ {
+			fmt.Println("Buzzing...")
+			control.Buzzer.Play(float64(i), 2000)
+			time.Sleep(2 * time.Second)
+			i += 100
+		}
 
+		fmt.Println("Polling buttons...")
 		for _, btn := range control.Switches {
 			fmt.Println(btn.State())
 		}
@@ -40,7 +46,7 @@ func TestDevice(t *testing.T) {
 	})
 
 	control.Changed(func(device interface{}) {
-		fmt.Println(device)
+		fmt.Println(fmt.Sprintf("Changed: %+v", device))
 	})
 
 	control.Loop(func() {
@@ -66,7 +72,7 @@ func TestDevice(t *testing.T) {
 		states += "B "
 		for _, btn := range control.Buttons {
 			var str string
-			if btn.State() {
+			if btn.active {
 				str = "1 "
 			} else {
 				str = "0 "
@@ -78,7 +84,7 @@ func TestDevice(t *testing.T) {
 		states += "S "
 		for _, btn := range control.Switches {
 			var str string
-			if btn.State() {
+			if btn.active {
 				str = "1 "
 			} else {
 				str = "0 "

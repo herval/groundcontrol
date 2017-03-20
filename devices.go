@@ -78,9 +78,11 @@ func (p *Potentiometer) State() interface{} {
 
 func (p *Potentiometer) Changed() bool {
 	return wasModified(p, func() {
-		level, _ := p.adaptor.AnalogRead(p.pin)
-		level = roundDown(level) // a bit less precision goes a long way
-		p.level = level
+		level, err := p.adaptor.AnalogRead(p.pin)
+		if err == nil {
+			level = roundDown(level) // a bit less precision goes a long way
+			p.level = level
+		}
 	})
 }
 

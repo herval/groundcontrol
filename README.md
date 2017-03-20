@@ -67,8 +67,6 @@ In order to communicate to the device
 > ground_control -listen
 ```
 
-
-
 ## Arduino Setup
 
 - Install [Firmata](http://gort.io/documentation/cli/arduino/) on the Duino:
@@ -81,14 +79,12 @@ In order to communicate to the device
 
 ![frizling](v1.png)
 
+I built the actual device using a small plastic box as casing, lots of hot glue and wires. A true beauty! 🤓
+
+![proto-prototype](proto.jpg)
 
 ## References 
 https://gobot.io/documentation/platforms/arduino/
 
-
-
-
 # TODO
-
-- api
-- arduino code
+- Rewrite the whole thing as an embedded Arduino code (instead of requiring it to be controlled via USB)
